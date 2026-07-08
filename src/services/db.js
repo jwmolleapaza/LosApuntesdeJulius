@@ -1193,13 +1193,149 @@ export const dbService = {
       return { success: false, error: 'Airtable no está configurado o activo en los ajustes.' };
     }
 
+    const apiKey = config.airtableApiKey;
+    const baseId = config.airtableBaseId;
+    const tableName = 'Articulos';
+
     try {
+      // 1. Obtener los artículos locales
       const localArticles = this.getArticles();
-      // Simulamos la latencia de red de sincronización
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      addLogEntry('Datos sincronizados con Airtable exitosamente');
-      return { success: true, count: localArticles.length };
+
+      // 2. Consultar registros remotos de Airtable
+      const getUrl = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+      const response = await fetch(getUrl, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `Error del servidor Airtable (${response.status})`);
+      }
+
+      const remoteData = await response.json();
+      const remoteRecords = remoteData.records || [];
+
+      // 3. Mapear registros de Airtable a formato local
+      const remoteArticles = remoteRecords.map(record => {
+        const fields = record.fields;
+        let blocks = [];
+        try {
+          blocks = fields.blocks ? JSON.parse(fields.blocks) : [];
+        } catch (e) {
+          console.error("Error parsing blocks from Airtable", e);
+        }
+
+        let tags = [];
+        if (typeof fields.tags === 'string') {
+          tags = fields.tags.split(',').map(t => t.trim()).filter(Boolean);
+        } else if (Array.isArray(fields.tags)) {
+          tags = fields.tags;
+        }
+
+        return {
+          id: fields.id || record.id,
+          airtableRecordId: record.id, // Guardar el ID de Airtable para actualizaciones
+          title: fields.title || '',
+          slug: fields.slug || '',
+          summary: fields.summary || '',
+          category: fields.category || 'Otros',
+          tags: tags,
+          author: fields.author || 'Julius',
+          date: fields.date || new Date().toISOString().split('T')[0],
+          readTime: Number(fields.readTime) || 5,
+          difficulty: fields.difficulty || 'Intermedio',
+          status: fields.status || 'borrador',
+          featured: fields.featured === true,
+          views: Number(fields.views) || 0,
+          image: fields.image || '',
+          blocks: blocks
+        };
+      });
+
+      // 4. Comparar y mezclar
+      const mergedArticles = [...localArticles];
+      const articlesToUpload = [];
+
+      localArticles.forEach(localArt => {
+        const hasRemote = remoteArticles.some(remoteArt => remoteArt.title.toLowerCase() === localArt.title.toLowerCase());
+        if (!hasRemote) {
+          articlesToUpload.push(localArt);
+        }
+      });
+
+      // Añadir los remotos que falten en local
+      remoteArticles.forEach(remoteArt => {
+        const hasLocal = localArticles.some(localArt => localArt.title.toLowerCase() === remoteArt.title.toLowerCase());
+        if (!hasLocal) {
+          mergedArticles.push(remoteArt);
+        }
+      });
+
+      // 5. Subir los artículos locales faltantes a Airtable en lotes de 10 (límite de la API de Airtable)
+      if (articlesToUpload.length > 0) {
+        for (let i = 0; i < articlesToUpload.length; i += 10) {
+          const batch = articlesToUpload.slice(i, i + 10);
+          const records = batch.map(art => {
+            return {
+              fields: {
+                id: art.id,
+                title: art.title,
+                slug: art.slug,
+                summary: art.summary,
+                category: art.category,
+                tags: Array.isArray(art.tags) ? art.tags.join(', ') : '',
+                author: art.author,
+                date: art.date,
+                readTime: Number(art.readTime) || 5,
+                difficulty: art.difficulty,
+                status: art.status,
+                featured: art.featured === true,
+                views: Number(art.views) || 0,
+                image: art.image,
+                blocks: JSON.stringify(art.blocks)
+              }
+            };
+          });
+
+          const postUrl = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+          const postResponse = await fetch(postUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ records })
+          });
+
+          if (!postResponse.ok) {
+            console.error("Error al subir lote a Airtable", postResponse.statusText);
+          } else {
+            const resultData = await postResponse.json();
+            resultData.records.forEach(remoteRecord => {
+              const matchedArt = mergedArticles.find(art => art.id === remoteRecord.fields.id);
+              if (matchedArt) {
+                matchedArt.airtableRecordId = remoteRecord.id;
+              }
+            });
+          }
+        }
+      }
+
+      // 6. Guardar los artículos mezclados en LocalStorage
+      localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(mergedArticles));
+      addLogEntry(`Datos sincronizados con Airtable. Remotos: ${remoteArticles.length}. Subidos: ${articlesToUpload.length}`);
+      
+      return { 
+        success: true, 
+        count: mergedArticles.length,
+        uploadedCount: articlesToUpload.length,
+        downloadedCount: remoteArticles.length - (localArticles.length - articlesToUpload.length)
+      };
+
     } catch (error) {
+      console.error("Error en sincronización de Airtable", error);
       return { success: false, error: error.message };
     }
   }
