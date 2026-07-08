@@ -1338,5 +1338,78 @@ export const dbService = {
       console.error("Error en sincronización de Airtable", error);
       return { success: false, error: error.message };
     }
+  },
+
+  async pullArticlesFromAirtable() {
+    const config = this.getConfig();
+    if (!config.airtableActive || !config.airtableApiKey || !config.airtableBaseId) {
+      return { success: false, error: 'Airtable no configurado.' };
+    }
+
+    const apiKey = config.airtableApiKey;
+    const baseId = config.airtableBaseId;
+    const tableName = 'Articulos';
+
+    try {
+      const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`Airtable error ${response.status}`);
+      const data = await response.json();
+      const remoteRecords = data.records || [];
+
+      const remoteArticles = remoteRecords.map(record => {
+        const fields = record.fields;
+        let blocks = [];
+        try {
+          blocks = fields.blocks ? JSON.parse(fields.blocks) : [];
+        } catch (e) {}
+
+        let tags = [];
+        if (typeof fields.tags === 'string') {
+          tags = fields.tags.split(',').map(t => t.trim()).filter(Boolean);
+        }
+
+        return {
+          id: fields.id || record.id,
+          airtableRecordId: record.id,
+          title: fields.title || '',
+          slug: fields.slug || '',
+          summary: fields.summary || '',
+          category: fields.category || 'Otros',
+          tags: tags,
+          author: fields.author || 'Julius',
+          date: fields.date || new Date().toISOString().split('T')[0],
+          readTime: Number(fields.readTime) || 5,
+          difficulty: fields.difficulty || 'Intermedio',
+          status: fields.status || 'borrador',
+          featured: fields.featured === true,
+          views: Number(fields.views) || 0,
+          image: fields.image || '',
+          blocks: blocks
+        };
+      });
+
+      if (remoteArticles.length > 0) {
+        const localArticles = this.getArticles();
+        const merged = [...remoteArticles];
+
+        localArticles.forEach(localArt => {
+          const existsInRemote = remoteArticles.some(rem => rem.title.toLowerCase() === localArt.title.toLowerCase());
+          if (!existsInRemote) {
+            merged.push(localArt);
+          }
+        });
+
+        localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(merged));
+      }
+      return { success: true, count: remoteArticles.length };
+    } catch (e) {
+      console.error("Airtable pull failed", e);
+      return { success: false, error: e.message };
+    }
   }
 };

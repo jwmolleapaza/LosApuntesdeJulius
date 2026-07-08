@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import { dbService } from './services/db';
 
 // Importar Páginas
 import Home from './pages/Home';
@@ -24,6 +25,23 @@ import './styles/admin.css';
 export default function App() {
   const [route, setRoute] = useState('home');
   const [routeParam, setRouteParam] = useState(null);
+  const [articlesUpdated, setArticlesUpdated] = useState(false);
+
+  // Sincronizar con Airtable al cargar la página si está configurado en los ajustes
+  useEffect(() => {
+    const syncAirtableOnMount = async () => {
+      try {
+        const config = dbService.getConfig();
+        if (config.airtableActive && config.airtableApiKey && config.airtableBaseId) {
+          await dbService.pullArticlesFromAirtable();
+          setArticlesUpdated(prev => !prev);
+        }
+      } catch (err) {
+        console.error("Fallo de sincronización inicial con Airtable:", err);
+      }
+    };
+    syncAirtableOnMount();
+  }, []);
 
   // Navegar de forma segura guardando el estado
   const navigateTo = (newRoute, param = null) => {
@@ -75,15 +93,15 @@ export default function App() {
   const renderPage = () => {
     switch (route) {
       case 'home':
-        return <Home navigateTo={navigateTo} />;
+        return <Home key={articlesUpdated ? 'updated' : 'initial'} navigateTo={navigateTo} />;
       case 'noticias':
-        return <Blog onlyNoticias={true} filterQuery={routeParam} navigateTo={navigateTo} />;
+        return <Blog key={`noticias-${articlesUpdated}`} onlyNoticias={true} filterQuery={routeParam} navigateTo={navigateTo} />;
       case 'blog':
-        return <Blog onlyTechnical={true} filterQuery={routeParam} navigateTo={navigateTo} />;
+        return <Blog key={`blog-${articlesUpdated}`} onlyTechnical={true} filterQuery={routeParam} navigateTo={navigateTo} />;
       case 'post':
-        return <PostDetail slug={routeParam} navigateTo={navigateTo} />;
+        return <PostDetail key={`post-${articlesUpdated}`} slug={routeParam} navigateTo={navigateTo} />;
       case 'categorias':
-        return <Blog onlyTechnical={true} filterQuery={routeParam} navigateTo={navigateTo} />;
+        return <Blog key={`categorias-${articlesUpdated}`} onlyTechnical={true} filterQuery={routeParam} navigateTo={navigateTo} />;
       case 'servicios':
         return <Servicios navigateTo={navigateTo} />;
       case 'recursos':
