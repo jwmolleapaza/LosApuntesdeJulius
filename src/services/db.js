@@ -282,7 +282,7 @@ const DEFAULT_CONFIG = {
   lightMode: true,
   aboutTitle: 'Sobre Nosotros',
   aboutText: 'Ingeniero Civil Colegiado con más de 12 años de experiencia liderando oficinas de Control de Proyectos (PMO) en contratos de infraestructura vial, minería y edificaciones. Apasionado por la tecnología aplicada a la construcción, ha desarrollado este blog como un espacio para compartir apuntes prácticos sobre herramientas como Primavera P6, MS Project, y automatización con hojas de cálculo e inteligencia artificial.',
-  aboutImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+  aboutImage: 'julius_photo.jpg',
   aboutBullets: 'Certificado PMP® (Project Management Professional), Especialista en Control de Plazos y Ruta Crítica (CPM), Consultor Técnico de Empresas de Construcción'
 };
 
@@ -344,6 +344,19 @@ const initializeStorage = () => {
   }
 
   checkAndSet(STORAGE_KEYS.CONFIG, DEFAULT_CONFIG);
+  
+  // Migración para usar la nueva foto del autor en Sobre Nosotros
+  const storedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
+  if (storedConfig) {
+    try {
+      const parsedConfig = JSON.parse(storedConfig);
+      if (!parsedConfig.aboutImage || parsedConfig.aboutImage.includes('unsplash.com') || parsedConfig.aboutImage === '') {
+        parsedConfig.aboutImage = 'julius_photo.jpg';
+        localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parsedConfig));
+      }
+    } catch (e) {}
+  }
+  
   checkAndSet(STORAGE_KEYS.COMMENTS, DEFAULT_COMMENTS);
   checkAndSet(STORAGE_KEYS.SUBSCRIBERS, DEFAULT_SUBSCRIBERS);
   checkAndSet(STORAGE_KEYS.LOGS, DEFAULT_LOGS);
