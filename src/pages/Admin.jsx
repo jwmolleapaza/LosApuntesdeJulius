@@ -473,10 +473,37 @@ export default function Admin({ navigateTo }) {
   };
 
   // Configuración de Airtable
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
     dbService.saveConfig(config);
-    alert('Configuración guardada en LocalStorage');
+    
+    if (config.airtableActive) {
+      if (!config.airtableApiKey || !config.airtableBaseId) {
+        alert('Por favor, completa el Token y el Base ID de Airtable.');
+        return;
+      }
+      
+      try {
+        // Hacemos una llamada de prueba rápida
+        const response = await fetch(`https://api.airtable.com/v0/${config.airtableBaseId}/Articulos?maxRecords=1`, {
+          headers: {
+            'Authorization': `Bearer ${config.airtableApiKey}`
+          }
+        });
+        
+        if (response.ok) {
+          alert('¡Credenciales guardadas y conexión con Airtable establecida con éxito en la nube!');
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          alert(`Credenciales guardadas localmente, pero Airtable devolvió un error: ${errData.error?.message || response.statusText}`);
+        }
+      } catch (err) {
+        alert(`Credenciales guardadas localmente, pero falló la conexión con Airtable: ${err.message}`);
+      }
+    } else {
+      alert('Configuración guardada con éxito.');
+    }
+    
     refreshAllData();
   };
 
