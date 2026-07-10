@@ -68,6 +68,8 @@ export default function Admin({ navigateTo }) {
   const [newResUrl, setNewResUrl] = useState('');
   const [newResOrder, setNewResOrder] = useState(1);
   const [newResClass, setNewResClass] = useState('descargable');
+  const [localFileContent, setLocalFileContent] = useState('');
+  const [localFileName, setLocalFileName] = useState('');
 
   // Modales y Estados de Cursos
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -229,6 +231,69 @@ export default function Admin({ navigateTo }) {
     }
   };
 
+  // Maniobrar subida de archivo para Recursos
+  const handleResourceFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLocalFileContent(event.target.result);
+      setLocalFileName(file.name);
+      
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      setNewResSize(`${sizeMB} MB`);
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'xlsx' || ext === 'xls') {
+        setNewResType('Excel (XLSX)');
+      } else if (ext === 'pdf') {
+        setNewResType('PDF');
+      } else if (ext === 'mpp') {
+        setNewResType('MS Project (MPP)');
+      } else {
+        setNewResType('ZIP (Excel/P6)');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Maniobrar subida de imagen para Artículos con compresión Canvas
+  const handleArticleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        setArticleImage(compressedBase64);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Guardar o Editar Recurso
   const handleSaveResource = (e) => {
     e.preventDefault();
@@ -242,7 +307,9 @@ export default function Admin({ navigateTo }) {
       fileType: newResType,
       resourceType: newResClass,
       url: newResUrl,
-      order: parseInt(newResOrder) || 1
+      order: parseInt(newResOrder) || 1,
+      localFileContent: localFileContent,
+      localFileName: localFileName
     });
 
     setEditingResourceId(null);
@@ -253,6 +320,8 @@ export default function Admin({ navigateTo }) {
     setNewResUrl('');
     setNewResOrder(1);
     setNewResClass('descargable');
+    setLocalFileContent('');
+    setLocalFileName('');
     setShowResModal(false);
     refreshAllData();
   };
@@ -266,6 +335,8 @@ export default function Admin({ navigateTo }) {
     setNewResUrl(res.url || '');
     setNewResOrder(res.order || 1);
     setNewResClass(res.resourceType || 'descargable');
+    setLocalFileContent(res.localFileContent || '');
+    setLocalFileName(res.localFileName || '');
     setShowResModal(true);
   };
 
@@ -686,13 +757,32 @@ export default function Admin({ navigateTo }) {
 
               <div className="admin-form-row">
                 <div className="admin-form-group">
-                  <label>URL Imagen Destacada</label>
-                  <input 
-                    type="text" 
-                    value={articleImage} 
-                    onChange={(e) => setArticleImage(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                  />
+                  <label>Imagen Destacada (Enlace o Subir Local)</label>
+                  <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                    <input 
+                      type="text" 
+                      value={articleImage} 
+                      onChange={(e) => setArticleImage(e.target.value)}
+                      placeholder="Pegar enlace de imagen..."
+                      style={{flexGrow:1}}
+                    />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleArticleImageUpload} 
+                      style={{display:'none'}} 
+                      id="art-img-file"
+                    />
+                    <label htmlFor="art-img-file" className="btn-secondary" style={{padding:'10px 14px', fontSize:12, cursor:'pointer', margin:0, whiteSpace:'nowrap', borderRadius:'var(--radius-md)'}}>
+                      Subir Imagen
+                    </label>
+                  </div>
+                  {articleImage && (
+                    <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
+                      <img src={articleImage} alt="Vista previa" style={{width:45, height:45, objectFit:'cover', borderRadius:'var(--radius-sm)', border:'1px solid var(--border)'}} />
+                      <span style={{fontSize:11, color:'var(--text-muted)'}}>{articleImage.startsWith('data:image') ? 'Imagen local cargada (comprimida)' : 'Imagen por enlace externo'}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="admin-form-group">
                   <label>Dificultad</label>
@@ -1220,6 +1310,40 @@ export default function Admin({ navigateTo }) {
                       />
                     </div>
 
+                    <div style={{borderTop:'1px solid var(--border)', paddingTop:16, marginTop:16, marginBottom:16}}>
+                      <h3 style={{fontSize:14, marginBottom:12}}>Visibilidad de Páginas (Menú Navegación)</h3>
+                      <div className="grid grid-2" style={{gap:12, marginBottom:16}}>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-noticias" checked={config.hideNoticias || false} onChange={(e) => setConfig({...config, hideNoticias: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-noticias" style={{margin:0, fontSize:13}}>Ocultar Noticias</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-blog" checked={config.hideBlog || false} onChange={(e) => setConfig({...config, hideBlog: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-blog" style={{margin:0, fontSize:13}}>Ocultar Blog Técnico</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-recursos" checked={config.hideRecursos || false} onChange={(e) => setConfig({...config, hideRecursos: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-recursos" style={{margin:0, fontSize:13}}>Ocultar Recursos</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-cursos" checked={config.hideCursos || false} onChange={(e) => setConfig({...config, hideCursos: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-cursos" style={{margin:0, fontSize:13}}>Ocultar Cursos</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-servicios" checked={config.hideServicios || false} onChange={(e) => setConfig({...config, hideServicios: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-servicios" style={{margin:0, fontSize:13}}>Ocultar Servicios</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-membresias" checked={config.hideMembresias || false} onChange={(e) => setConfig({...config, hideMembresias: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-membresias" style={{margin:0, fontSize:13}}>Ocultar Membresías</label>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:8}}>
+                          <input type="checkbox" id="hide-contacto" checked={config.hideContacto || false} onChange={(e) => setConfig({...config, hideContacto: e.target.checked})} style={{width:16, height:16}} />
+                          <label htmlFor="hide-contacto" style={{margin:0, fontSize:13}}>Ocultar Contacto</label>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="admin-form-group">
                       <label>Lema Técnico / Tagline</label>
                       <input 
@@ -1489,6 +1613,8 @@ export default function Admin({ navigateTo }) {
                 setNewResUrl('');
                 setNewResOrder(1);
                 setNewResClass('descargable');
+                setLocalFileContent('');
+                setLocalFileName('');
               }}><X size={18} /></button>
             </div>
             <form onSubmit={handleSaveResource}>
@@ -1561,13 +1687,33 @@ export default function Admin({ navigateTo }) {
                   </div>
                 </div>
 
+                {newResClass === 'descargable' && (
+                  <div className="admin-form-group">
+                    <label>Subir Archivo Local (Opcional, tiene prioridad)</label>
+                    <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                      <input 
+                        type="file" 
+                        onChange={handleResourceFileChange} 
+                        style={{display:'none'}}
+                        id="res-file-upload"
+                      />
+                      <label htmlFor="res-file-upload" className="btn-secondary" style={{padding:'10px 14px', fontSize:12, cursor:'pointer', margin:0, whiteSpace:'nowrap', borderRadius:'var(--radius-md)'}}>
+                        Seleccionar Archivo Local
+                      </label>
+                      <span style={{fontSize:12, color:'var(--text-muted)', textOverflow:'ellipsis', overflow:'hidden', whiteSpace:'nowrap'}}>
+                        {localFileName ? `Archivo: ${localFileName}` : 'Ningún archivo seleccionado'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="admin-form-group">
-                  <label>{newResClass === 'video' ? 'Enlace del Video / Playlist (YouTube)' : 'Enlace de Descarga (o dejar en blanco para simulación)'}</label>
+                  <label>{newResClass === 'video' ? 'Enlace del Video / Playlist (YouTube)' : 'Enlace / URL de Descarga Externa'}</label>
                   <input 
                     type="text" 
                     value={newResUrl} 
                     onChange={(e) => setNewResUrl(e.target.value)} 
-                    placeholder={newResClass === 'video' ? "https://www.youtube.com/watch?v=..." : "https://sitio.com/archivo.xlsx"} 
+                    placeholder={newResClass === 'video' ? "https://www.youtube.com/watch?v=..." : "https://drive.google.com/..."} 
                   />
                 </div>
               </div>
@@ -1582,6 +1728,8 @@ export default function Admin({ navigateTo }) {
                   setNewResUrl('');
                   setNewResOrder(1);
                   setNewResClass('descargable');
+                  setLocalFileContent('');
+                  setLocalFileName('');
                 }}>Cancelar</button>
                 <button type="submit" className="btn-primary">Guardar Recurso</button>
               </div>

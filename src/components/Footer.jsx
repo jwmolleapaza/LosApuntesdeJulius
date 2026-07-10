@@ -79,10 +79,10 @@ export default function Footer({ navigateTo }) {
           <h4 className="footer-col-title">Plataforma</h4>
           <div className="footer-links-list">
             <button onClick={() => navigateTo('home')}>Inicio</button>
-            <button onClick={() => navigateTo('noticias')}>Noticias</button>
-            <button onClick={() => navigateTo('blog')}>Blog Técnico</button>
-            <button onClick={() => navigateTo('servicios')}>Servicios</button>
-            <button onClick={() => navigateTo('recursos')}>Recursos Gratuitos</button>
+            {!config.hideNoticias && <button onClick={() => navigateTo('noticias')}>Noticias</button>}
+            {!config.hideBlog && <button onClick={() => navigateTo('blog')}>Blog Técnico</button>}
+            {!config.hideServicios && <button onClick={() => navigateTo('servicios')}>Servicios</button>}
+            {!config.hideRecursos && <button onClick={() => navigateTo('recursos')}>Recursos Gratuitos</button>}
           </div>
         </div>
 
@@ -91,8 +91,8 @@ export default function Footer({ navigateTo }) {
           <h4 className="footer-col-title">Legal e Info</h4>
           <div className="footer-links-list">
             <button onClick={() => { navigateTo('home'); setTimeout(() => { document.getElementById('nosotros-home')?.scrollIntoView({ behavior: 'smooth' }); }, 150); }}>Nosotros</button>
-            <button onClick={() => navigateTo('cursos')}>Cursos Online</button>
-            <button onClick={() => navigateTo('membresias')}>Membresías</button>
+            {!config.hideCursos && <button onClick={() => navigateTo('cursos')}>Cursos Online</button>}
+            {!config.hideMembresias && <button onClick={() => navigateTo('membresias')}>Membresías</button>}
             <button onClick={() => navigateTo('legal', 'privacidad')}>Política de Privacidad</button>
             <button onClick={() => navigateTo('legal', 'terminos')}>Términos y Condiciones</button>
           </div>

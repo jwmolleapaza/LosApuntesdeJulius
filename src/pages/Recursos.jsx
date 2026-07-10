@@ -46,24 +46,37 @@ export default function Recursos() {
     // Incrementar en almacenamiento
     dbService.incrementDownload(res.id);
     
-    // Simular el contenido del archivo dependiendo del tipo
-    let fileContent = '';
-    let filename = res.title.toLowerCase().replace(/\s+/g, '-') + (res.fileType.includes('Excel') ? '.csv' : res.fileType.includes('PDF') ? '.pdf' : '.zip');
-    let mimeType = 'text/plain';
-
-    if (res.fileType.includes('Excel')) {
-      fileContent = "Semana,Previsto,Real,Holgura\nSemana 1,100,90,10\nSemana 2,200,195,5\nSemana 3,300,310,-10\nSemana 4,400,420,-20";
-      mimeType = 'text/csv';
-    } else if (res.fileType.includes('PDF')) {
-      fileContent = "%PDF-1.4 Mock de Fichero de Control de Cimentaciones y Encofrados de Julius";
-      mimeType = 'application/pdf';
+    if (res.localFileContent) {
+      // Descargar archivo local codificado en base64
+      const link = document.createElement('a');
+      link.href = res.localFileContent;
+      link.download = res.localFileName || res.title;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (res.url) {
+      // Si es una página vinculada, abrir en nueva pestaña
+      window.open(res.url, '_blank');
     } else {
-      fileContent = "Mock ZIP de Apuntes de WBS de Edificaciones de Julius";
-      mimeType = 'application/octet-stream';
-    }
+      // Simular el contenido del archivo dependiendo del tipo (comportamiento original por defecto)
+      let fileContent = '';
+      let filename = res.title.toLowerCase().replace(/\s+/g, '-') + (res.fileType.includes('Excel') ? '.csv' : res.fileType.includes('PDF') ? '.pdf' : '.zip');
+      let mimeType = 'text/plain';
 
-    // Disparar la descarga real del navegador
-    triggerDownload(filename, fileContent, mimeType);
+      if (res.fileType.includes('Excel')) {
+        fileContent = "Semana,Previsto,Real,Holgura\nSemana 1,100,90,10\nSemana 2,200,195,5\nSemana 3,300,310,-10\nSemana 4,400,420,-20";
+        mimeType = 'text/csv';
+      } else if (res.fileType.includes('PDF')) {
+        fileContent = "%PDF-1.4 Mock de Fichero de Control de Cimentaciones y Encofrados de Julius";
+        mimeType = 'application/pdf';
+      } else {
+        fileContent = "Mock ZIP de Apuntes de WBS de Edificaciones de Julius";
+        mimeType = 'application/octet-stream';
+      }
+
+      // Disparar la descarga real del navegador
+      triggerDownload(filename, fileContent, mimeType);
+    }
 
     // Actualizar la vista local de conteo
     setResources(dbService.getResources());

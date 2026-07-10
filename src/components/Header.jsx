@@ -59,14 +59,14 @@ export default function Header({ currentRoute, navigateTo }) {
 
   const menuItems = [
     { label: 'Inicio', route: 'home' },
-    { label: 'Noticias', route: 'noticias' },
-    { label: 'Blog', route: 'blog' },
-    { label: 'Recursos', route: 'recursos' },
-    { label: 'Cursos', route: 'cursos' },
-    { label: 'Servicios', route: 'servicios' },
-    { label: 'Membresías', route: 'membresias' },
-    { label: 'Contacto', route: 'contacto' }
-  ];
+    !config.hideNoticias && { label: 'Noticias', route: 'noticias' },
+    !config.hideBlog && { label: 'Blog', route: 'blog' },
+    !config.hideRecursos && { label: 'Recursos', route: 'recursos' },
+    !config.hideCursos && { label: 'Cursos', route: 'cursos' },
+    !config.hideServicios && { label: 'Servicios', route: 'servicios' },
+    !config.hideMembresias && { label: 'Membresías', route: 'membresias' },
+    !config.hideContacto && { label: 'Contacto', route: 'contacto' }
+  ].filter(Boolean);
 
   return (
     <header className="site-header">
