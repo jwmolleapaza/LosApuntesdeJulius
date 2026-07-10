@@ -305,31 +305,47 @@ export default function Home({ navigateTo }) {
                 </div>
               </div>
 
-              {/* Recursos Gratuitos Destacados */}
-              {!config.hideRecursos && resources.length > 0 && (
-                <div className="sidebar-card mt-4">
-                  <h3 className="sidebar-card-title">Recursos Gratuitos</h3>
-                  <div className="sidebar-resources-list">
-                    {resources.slice(0, 2).map(res => (
-                      <div key={res.id} className="sidebar-resource-item">
-                        <div className="resource-icon-box">
-                          <Download size={18} />
-                        </div>
-                        <div className="resource-info">
-                          <h4>{res.title}</h4>
-                          <span>{res.fileType} • {res.fileSize}</span>
-                        </div>
-                        <button className="btn-icon" onClick={() => navigateTo('recursos')}>
-                          <ChevronRight size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
 
+          </div>
+        </section>
+      )}
+
+      {/* Recursos Gratuitos Destacados (Sección Completa y Balanceada) */}
+      {!config.hideRecursos && resources.length > 0 && (
+        <section className="resources-featured-section py-section" style={{backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)'}}>
+          <div className="container">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Plantillas y Recursos Destacados</h2>
+                <p className="section-subtitle">Descarga formatos de ingeniería gratis para control de plazos y presupuestos</p>
+              </div>
+              <button className="btn-link" onClick={() => navigateTo('recursos')}>
+                Ver Todos <ChevronRight size={16} />
+              </button>
+            </div>
+            
+            <div className="grid grid-3">
+              {resources.slice(0, 3).map(res => (
+                <div key={res.id} className="resource-detail-card" style={{display:'flex', flexDirection:'column', justifyContent:'space-between', height:'100%', backgroundColor:'var(--bg-card)', padding:'24px', borderRadius:'var(--radius-lg)', border:'1px solid var(--border)'}}>
+                  <div>
+                    <div style={{display:'flex', justifyContent:'space-between', marginBottom:12}}>
+                      <span className="file-type-tag" style={{fontSize:11, padding:'2px 8px', backgroundColor:'var(--primary-glow)', color:'var(--primary)', borderRadius:4, fontWeight:600}}>{res.fileType}</span>
+                      <span className="file-size-tag" style={{fontSize:11, color:'var(--text-light)'}}>{res.fileSize}</span>
+                    </div>
+                    <h3 style={{fontSize:16, fontWeight:700, marginBottom:8, color:'var(--text-main)', fontFamily:'var(--font-title)'}}>{res.title}</h3>
+                    <p style={{fontSize:13, color:'var(--text-muted)', lineHeight:1.4, marginBottom:20}}>{res.description}</p>
+                  </div>
+                  <button 
+                    className="btn-primary w-full" 
+                    onClick={() => navigateTo('recursos')}
+                    style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, fontSize:12}}
+                  >
+                    <Download size={14} /> Descargar Gratis
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
