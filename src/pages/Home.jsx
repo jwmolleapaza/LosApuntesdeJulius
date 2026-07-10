@@ -143,18 +143,20 @@ export default function Home({ navigateTo }) {
             <button type="submit" className="btn-primary">Buscar Guía</button>
           </form>
 
-          <div className="hero-cta-buttons">
-            {!config.hideBlog && (
-              <button className="btn-primary" onClick={() => navigateTo('blog')}>
-                Explorar Artículos <ArrowRight size={16} />
-              </button>
-            )}
-            {!config.hideRecursos && (
-              <button className="btn-secondary" onClick={() => navigateTo('recursos')}>
-                Recursos Gratuitos
-              </button>
-            )}
-          </div>
+          {(!config.hideBlog || !config.hideRecursos) && (
+            <div className="hero-cta-buttons">
+              {!config.hideBlog && (
+                <button className="btn-primary" onClick={() => navigateTo('blog')}>
+                  Explorar Artículos <ArrowRight size={16} />
+                </button>
+              )}
+              {!config.hideRecursos && (
+                <button className="btn-secondary" onClick={() => navigateTo('recursos')}>
+                  Recursos Gratuitos
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

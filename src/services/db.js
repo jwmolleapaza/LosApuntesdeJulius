@@ -268,7 +268,7 @@ const DEFAULT_CONFIG = {
   siteName: 'Los Apuntes de Julius',
   logoText: 'Julius Engineering',
   tagline: 'Apuntes prácticos sobre Planificación, Control y Gestión de Obras de Ingeniería',
-  adSenseActive: true,
+  adSenseActive: false,
   adSenseSlotTop: '<!-- AdSense Banner Top Mock -->',
   adSenseSlotSidebar: '<!-- AdSense Sidebar Mock -->',
   youtubeChannelUrl: 'https://youtube.com/c/MockEngineeringChannel',
@@ -352,13 +352,31 @@ const initializeStorage = () => {
 
   checkAndSet(STORAGE_KEYS.CONFIG, DEFAULT_CONFIG);
   
-  // Migración para usar la nueva foto del autor en Sobre Nosotros
+  // Migración para usar la nueva foto del autor en Sobre Nosotros y desactivar AdSense de prueba
   const storedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
   if (storedConfig) {
     try {
       const parsedConfig = JSON.parse(storedConfig);
+      let changed = false;
       if (!parsedConfig.aboutImage || parsedConfig.aboutImage.includes('unsplash.com') || parsedConfig.aboutImage === '') {
         parsedConfig.aboutImage = 'julius_photo.jpg';
+        changed = true;
+      }
+      if (parsedConfig.adSenseSlotTop === '<!-- AdSense Banner Top Mock -->' && parsedConfig.adSenseActive === true) {
+        parsedConfig.adSenseActive = false;
+        changed = true;
+      }
+      if (!parsedConfig.hasOwnProperty('hideNoticias')) {
+        parsedConfig.hideNoticias = false;
+        parsedConfig.hideBlog = false;
+        parsedConfig.hideRecursos = false;
+        parsedConfig.hideCursos = false;
+        parsedConfig.hideServicios = false;
+        parsedConfig.hideMembresias = false;
+        parsedConfig.hideContacto = false;
+        changed = true;
+      }
+      if (changed) {
         localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parsedConfig));
       }
     } catch (e) {}
