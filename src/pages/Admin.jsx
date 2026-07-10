@@ -7,7 +7,7 @@ import BlockEditor from '../components/BlockEditor';
 import { 
   Lock, LayoutDashboard, FileText, FolderPlus, DownloadCloud, 
   BookOpen, Award, MessageSquare, Mail, Settings, ShieldAlert,
-  Database, Plus, Trash2, Edit3, Sparkles, Check, RefreshCw, LogOut, CheckCircle, FileCode, X
+  Database, Plus, Trash2, Edit3, Sparkles, Check, RefreshCw, LogOut, CheckCircle, FileCode, X, Share2
 } from 'lucide-react';
 
 export default function Admin({ navigateTo }) {
@@ -60,6 +60,7 @@ export default function Admin({ navigateTo }) {
   const [showCatModal, setShowCatModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [showResModal, setShowResModal] = useState(false);
+  const [sharePost, setSharePost] = useState(null);
   const [editingResourceId, setEditingResourceId] = useState(null);
   const [newResTitle, setNewResTitle] = useState('');
   const [newResDesc, setNewResDesc] = useState('');
@@ -973,6 +974,11 @@ export default function Admin({ navigateTo }) {
                           </td>
                           <td>{art.views || 0}</td>
                           <td className="admin-actions">
+                            {art.status === 'publicado' && (
+                              <button className="btn-icon" onClick={() => setSharePost(art)} title="Compartir en Redes" style={{color:'var(--primary)'}}>
+                                <Share2 size={14} />
+                              </button>
+                            )}
                             <button className="btn-icon" onClick={() => handleEditArticle(art)} title="Editar">
                               <Edit3 size={14} />
                             </button>
@@ -1593,6 +1599,64 @@ export default function Admin({ navigateTo }) {
                 <button type="submit" className="btn-primary">Guardar</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL COMPARTIR ARTÍCULO */}
+      {sharePost && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth:400}}>
+            <div className="modal-header">
+              <h3>Compartir Artículo</h3>
+              <button className="btn-icon" onClick={() => setSharePost(null)}><X size={18} /></button>
+            </div>
+            <div className="modal-body" style={{display:'flex', flexDirection:'column', gap:16, padding:20}}>
+              <p style={{fontSize:13, color:'var(--text-muted)'}}>
+                Comparte el artículo <strong>"{sharePost.title}"</strong> en tus redes sociales:
+              </p>
+              
+              <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                <a 
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://jwmolleapaza.github.io/LosApuntesdeJulius/#/post/${sharePost.slug}`)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn-primary" 
+                  style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, textDecoration:'none', backgroundColor:'#1877f2', color:'white', padding:10, borderRadius:'var(--radius-md)', fontSize:13, fontWeight:600}}
+                >
+                  Compartir en Facebook
+                </a>
+                
+                <a 
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://jwmolleapaza.github.io/LosApuntesdeJulius/#/post/${sharePost.slug}`)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn-primary" 
+                  style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, textDecoration:'none', backgroundColor:'#0a66c2', color:'white', padding:10, borderRadius:'var(--radius-md)', fontSize:13, fontWeight:600}}
+                >
+                  Compartir en LinkedIn
+                </a>
+                
+                <button 
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://jwmolleapaza.github.io/LosApuntesdeJulius/#/post/${sharePost.slug}`);
+                    alert('¡Enlace copiado al portapapeles! Úsalo para agregarlo en tus historias de Instagram o la biografía.');
+                  }}
+                  className="btn-secondary" 
+                  style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, borderRadius:'var(--radius-md)', fontSize:13, fontWeight:600}}
+                >
+                  Copiar Enlace (Instagram / Otros)
+                </button>
+              </div>
+              
+              <div style={{fontSize:12, padding:10, backgroundColor:'var(--bg-surface)', border:'1px solid var(--border)', borderRadius:6, lineHeight:1.4}}>
+                <strong>💡 Tip para Instagram:</strong> Instagram no permite enlaces clicables en textos de fotos. Puedes copiar el enlace con el botón de arriba y usar la **Etiqueta de Enlace (Link sticker)** en tus Historias, o pegarlo en el enlace de tu perfil (Bio).
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-secondary w-full" onClick={() => setSharePost(null)}>Cerrar</button>
+            </div>
           </div>
         </div>
       )}
