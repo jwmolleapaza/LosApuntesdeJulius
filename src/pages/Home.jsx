@@ -7,14 +7,27 @@ import SEOHead from '../components/SEOHead';
 
 export default function Home({ navigateTo }) {
   const config = dbService.getConfig();
-  const articles = dbService.getArticles().filter(a => a.status === 'publicado');
-  const categories = dbService.getCategories();
+  
+  let rawArticles = dbService.getArticles().filter(a => a.status === 'publicado');
+  if (config.hideBlog) {
+    rawArticles = rawArticles.filter(a => a.category === 'Noticias');
+  }
+  if (config.hideNoticias) {
+    rawArticles = rawArticles.filter(a => a.category !== 'Noticias');
+  }
+  const articles = rawArticles;
+
+  const categories = dbService.getCategories().filter(cat => {
+    if (config.hideNoticias && cat.name === 'Noticias') return false;
+    if (config.hideBlog && cat.name !== 'Noticias') return false;
+    return true;
+  });
   const resources = dbService.getResources();
   const courses = dbService.getCourses();
 
-  const featuredPost = articles.find(a => a.featured) || articles[0];
-  const recentPosts = articles.filter(a => a.id !== (featuredPost ? featuredPost.id : '')).slice(0, 3);
-  const topReadPosts = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 4);
+  const featuredPost = articles.length > 0 ? (articles.find(a => a.featured) || articles[0]) : null;
+  const recentPosts = featuredPost ? articles.filter(a => a.id !== featuredPost.id).slice(0, 3) : [];
+  const topReadPosts = articles.length > 0 ? [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 4) : [];
 
   const [searchVal, setSearchVal] = useState('');
   const [activeVideo, setActiveVideo] = useState(null);
@@ -131,12 +144,16 @@ export default function Home({ navigateTo }) {
           </form>
 
           <div className="hero-cta-buttons">
-            <button className="btn-primary" onClick={() => navigateTo('blog')}>
-              Explorar Artículos <ArrowRight size={16} />
-            </button>
-            <button className="btn-secondary" onClick={() => navigateTo('recursos')}>
-              Recursos Gratuitos
-            </button>
+            {!config.hideBlog && (
+              <button className="btn-primary" onClick={() => navigateTo('blog')}>
+                Explorar Artículos <ArrowRight size={16} />
+              </button>
+            )}
+            {!config.hideRecursos && (
+              <button className="btn-secondary" onClick={() => navigateTo('recursos')}>
+                Recursos Gratuitos
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -152,35 +169,37 @@ export default function Home({ navigateTo }) {
       )}
 
       {/* 2. Categorías Principales */}
-      <section className="categories-preview py-section">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Categorías Técnicas</h2>
-              <p className="section-subtitle">Navega por las áreas clave de la ingeniería y gestión de obras</p>
-            </div>
-            <button className="btn-link" onClick={() => navigateTo('blog')}>
-              Ver Todas <ChevronRight size={16} />
-            </button>
-          </div>
-          
-          <div className="categories-grid grid grid-3">
-            {categories.slice(0, 6).map(cat => (
-              <div 
-                key={cat.id} 
-                className="category-card"
-                onClick={() => cat.name === 'Noticias' ? navigateTo('noticias') : navigateTo('blog', `cat:${cat.name}`)}
-              >
-                <div className="category-card-info">
-                  <h3>{cat.name}</h3>
-                  <span>{cat.count || 0} publicaciones</span>
-                </div>
-                <div className="category-arrow">→</div>
+      {!config.hideBlog && categories.length > 0 && (
+        <section className="categories-preview py-section">
+          <div className="container">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Categorías Técnicas</h2>
+                <p className="section-subtitle">Navega por las áreas clave de la ingeniería y gestión de obras</p>
               </div>
-            ))}
+              <button className="btn-link" onClick={() => navigateTo('blog')}>
+                Ver Todas <ChevronRight size={16} />
+              </button>
+            </div>
+            
+            <div className="categories-grid grid grid-3">
+              {categories.slice(0, 6).map(cat => (
+                <div 
+                  key={cat.id} 
+                  className="category-card"
+                  onClick={() => cat.name === 'Noticias' ? navigateTo('noticias') : navigateTo('blog', `cat:${cat.name}`)}
+                >
+                  <div className="category-card-info">
+                    <h3>{cat.name}</h3>
+                    <span>{cat.count || 0} publicaciones</span>
+                  </div>
+                  <div className="category-arrow">→</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 3. Artículo Destacado */}
       {featuredPost && (
@@ -226,163 +245,171 @@ export default function Home({ navigateTo }) {
       )}
 
       {/* 4. Últimos Artículos y Más Leídos (Layout lateral) */}
-      <section className="posts-layout-section py-section">
-        <div className="container sidebar-layout">
-          
-          {/* Columna Izquierda: Últimos Artículos */}
-          <div className="main-posts-column">
-            <h2 className="section-title mb-4">Últimas Publicaciones</h2>
-            <div className="posts-list-grid">
-              {recentPosts.map(post => (
-                <div key={post.id} className="post-row-card" onClick={() => navigateTo('post', post.slug)}>
-                  <img src={post.image} alt={post.title} className="post-row-img" />
-                  <div className="post-row-info">
-                    <div className="post-row-meta">
-                      <span className="post-row-category">{post.category}</span>
-                      <span className="divider-dot">•</span>
-                      <span>{post.date}</span>
+      {articles.length > 0 && (
+        <section className="posts-layout-section py-section">
+          <div className="container sidebar-layout">
+            
+            {/* Columna Izquierda: Últimos Artículos */}
+            <div className="main-posts-column">
+              <h2 className="section-title mb-4">Últimas Publicaciones</h2>
+              <div className="posts-list-grid">
+                {recentPosts.map(post => (
+                  <div key={post.id} className="post-row-card" onClick={() => navigateTo('post', post.slug)}>
+                    <img src={post.image} alt={post.title} className="post-row-img" />
+                    <div className="post-row-info">
+                      <div className="post-row-meta">
+                        <span className="post-row-category">{post.category}</span>
+                        <span className="divider-dot">•</span>
+                        <span>{post.date}</span>
+                      </div>
+                      <h3 className="post-row-title">{post.title}</h3>
+                      <p className="post-row-summary">{post.summary}</p>
+                      <div className="post-row-badges">
+                        <span className={`badge badge-${post.difficulty.toLowerCase()}`}>{post.difficulty}</span>
+                        <span className="read-time-label"><Clock size={12} /> {post.readTime} min</span>
+                      </div>
                     </div>
-                    <h3 className="post-row-title">{post.title}</h3>
-                    <p className="post-row-summary">{post.summary}</p>
-                    <div className="post-row-badges">
-                      <span className={`badge badge-${post.difficulty.toLowerCase()}`}>{post.difficulty}</span>
-                      <span className="read-time-label"><Clock size={12} /> {post.readTime} min</span>
+                  </div>
+                ))}
+              </div>
+              <button className="btn-secondary w-full mt-4" onClick={() => navigateTo('blog')}>
+                Ver Todos los Artículos
+              </button>
+            </div>
+
+            {/* Columna Derecha: Más Leídos y Recursos */}
+            <div className="sidebar-column">
+              
+              {/* Anuncio Lateral */}
+              {config.adSenseActive && (
+                <div className="ad-slot sidebar-ad">
+                  {config.adSenseSlotSidebar}
+                  <span>Anuncio Lateral - Google AdSense</span>
+                </div>
+              )}
+
+              <div className="sidebar-card">
+                <h3 className="sidebar-card-title">Lo Más Leído</h3>
+                <div className="sidebar-list">
+                  {topReadPosts.map((post, idx) => (
+                    <div key={post.id} className="sidebar-list-item" onClick={() => navigateTo('post', post.slug)}>
+                      <span className="item-number">0{idx + 1}</span>
+                      <div className="item-content">
+                        <h4>{post.title}</h4>
+                        <span>{post.category} • {post.views} vistas</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recursos Gratuitos Destacados */}
+              {!config.hideRecursos && resources.length > 0 && (
+                <div className="sidebar-card mt-4">
+                  <h3 className="sidebar-card-title">Recursos Gratuitos</h3>
+                  <div className="sidebar-resources-list">
+                    {resources.slice(0, 2).map(res => (
+                      <div key={res.id} className="sidebar-resource-item">
+                        <div className="resource-icon-box">
+                          <Download size={18} />
+                        </div>
+                        <div className="resource-info">
+                          <h4>{res.title}</h4>
+                          <span>{res.fileType} • {res.fileSize}</span>
+                        </div>
+                        <button className="btn-icon" onClick={() => navigateTo('recursos')}>
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        </section>
+      )}
+
+      {/* 5. Cursos Destacados */}
+      {!config.hideCursos && courses.length > 0 && (
+        <section className="courses-featured-section py-section">
+          <div className="container">
+            <div className="section-header">
+              <div>
+                <h2 className="section-title">Cursos Profesionales</h2>
+                <p className="section-subtitle">Capacítate en las herramientas líderes del mercado de construcción</p>
+              </div>
+              <button className="btn-link" onClick={() => navigateTo('cursos')}>
+                Ver Catálogo <ChevronRight size={16} />
+              </button>
+            </div>
+  
+            <div className="courses-grid grid grid-2">
+              {courses.slice(0, 2).map(course => (
+                <div key={course.id} className="course-home-card">
+                  <img src={course.image} alt={course.title} className="course-home-img" />
+                  <div className="course-home-info">
+                    <div className="course-badge-row">
+                      <span className="course-level-badge">{course.level}</span>
+                      <span className="course-duration-badge">{course.duration}</span>
+                    </div>
+                    <h3>{course.title}</h3>
+                    <p>{course.description}</p>
+                    <div className="course-price-row">
+                      <span className="course-price">${course.price} USD</span>
+                      <button 
+                        className="btn-primary" 
+                        onClick={() => {
+                          if (course.link && (course.link.startsWith('http://') || course.link.startsWith('https://'))) {
+                            window.open(course.link, '_blank', 'noopener,noreferrer');
+                          } else {
+                            navigateTo('cursos');
+                          }
+                        }}
+                      >
+                        Inscribirse <ArrowRight size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <button className="btn-secondary w-full mt-4" onClick={() => navigateTo('blog')}>
-              Ver Todos los Artículos
-            </button>
           </div>
-
-          {/* Columna Derecha: Más Leídos y Recursos */}
-          <div className="sidebar-column">
-            
-            {/* Anuncio Lateral */}
-            {config.adSenseActive && (
-              <div className="ad-slot sidebar-ad">
-                {config.adSenseSlotSidebar}
-                <span>Anuncio Lateral - Google AdSense</span>
-              </div>
-            )}
-
-            <div className="sidebar-card">
-              <h3 className="sidebar-card-title">Lo Más Leído</h3>
-              <div className="sidebar-list">
-                {topReadPosts.map((post, idx) => (
-                  <div key={post.id} className="sidebar-list-item" onClick={() => navigateTo('post', post.slug)}>
-                    <span className="item-number">0{idx + 1}</span>
-                    <div className="item-content">
-                      <h4>{post.title}</h4>
-                      <span>{post.category} • {post.views} vistas</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recursos Gratuitos Destacados */}
-            <div className="sidebar-card mt-4">
-              <h3 className="sidebar-card-title">Recursos Gratuitos</h3>
-              <div className="sidebar-resources-list">
-                {resources.slice(0, 2).map(res => (
-                  <div key={res.id} className="sidebar-resource-item">
-                    <div className="resource-icon-box">
-                      <Download size={18} />
-                    </div>
-                    <div className="resource-info">
-                      <h4>{res.title}</h4>
-                      <span>{res.fileType} • {res.fileSize}</span>
-                    </div>
-                    <button className="btn-icon" onClick={() => navigateTo('recursos')}>
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* 5. Cursos Destacados */}
-      <section className="courses-featured-section py-section">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <h2 className="section-title">Cursos Profesionales</h2>
-              <p className="section-subtitle">Capacítate en las herramientas líderes del mercado de construcción</p>
-            </div>
-            <button className="btn-link" onClick={() => navigateTo('cursos')}>
-              Ver Catálogo <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="courses-grid grid grid-2">
-            {courses.slice(0, 2).map(course => (
-              <div key={course.id} className="course-home-card">
-                <img src={course.image} alt={course.title} className="course-home-img" />
-                <div className="course-home-info">
-                  <div className="course-badge-row">
-                    <span className="course-level-badge">{course.level}</span>
-                    <span className="course-duration-badge">{course.duration}</span>
-                  </div>
-                  <h3>{course.title}</h3>
-                  <p>{course.description}</p>
-                  <div className="course-price-row">
-                    <span className="course-price">${course.price} USD</span>
-                    <button 
-                      className="btn-primary" 
-                      onClick={() => {
-                        if (course.link && (course.link.startsWith('http://') || course.link.startsWith('https://'))) {
-                          window.open(course.link, '_blank', 'noopener,noreferrer');
-                        } else {
-                          navigateTo('cursos');
-                        }
-                      }}
-                    >
-                      Inscribirse <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 6. Videos Recientes de YouTube */}
-      <section className="youtube-videos-section py-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title flex-items-center">
-              <Youtube color="#ff0000" size={24} className="mr-2" /> Videos Recientes
-            </h2>
-            <a href={config.youtubeChannelUrl} target="_blank" rel="noopener noreferrer" className="btn-link">
-              Visitar Canal
-            </a>
-          </div>
+      {!config.hideRecursos && (
+        <section className="youtube-videos-section py-section">
+          <div className="container">
+            <div className="section-header">
+              <h2 className="section-title flex-items-center">
+                <Youtube color="#ff0000" size={24} className="mr-2" /> Videos Recientes
+              </h2>
+              <a href={config.youtubeChannelUrl} target="_blank" rel="noopener noreferrer" className="btn-link">
+                Visitar Canal
+              </a>
+            </div>
 
-          <div className="youtube-grid grid grid-3">
-            {displayVideos.map(vid => (
-              <div key={vid.id} className="yt-card" style={{cursor: 'pointer'}} onClick={() => {
-                dbService.incrementDownload(vid.id);
-                setActiveVideo(vid);
-              }}>
-                <div className="yt-embed-mock">
-                  <img src={getYoutubeThumbnail(vid.url, vid.image)} alt={vid.title} />
-                  <div className="play-overlay"><Play fill="white" size={32} /></div>
+            <div className="youtube-grid grid grid-3">
+              {displayVideos.map(vid => (
+                <div key={vid.id} className="yt-card" style={{cursor: 'pointer'}} onClick={() => {
+                  dbService.incrementDownload(vid.id);
+                  setActiveVideo(vid);
+                }}>
+                  <div className="yt-embed-mock">
+                    <img src={getYoutubeThumbnail(vid.url, vid.image)} alt={vid.title} />
+                    <div className="play-overlay"><Play fill="white" size={32} /></div>
+                  </div>
+                  <h4>{vid.title}</h4>
                 </div>
-                <h4>{vid.title}</h4>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Modal de Reproducción de Video */}
       {activeVideo && (
@@ -456,25 +483,27 @@ export default function Home({ navigateTo }) {
       </section>
 
       {/* 7. Membresía Promo CTA Banner */}
-      <section className="membership-promo-section py-section">
-        <div className="container">
-          <div className="promo-banner-card">
-            <div className="promo-info">
-              <span className="promo-tag">PREMIUM</span>
-              <h2>Únete a la Membresía Ingeniero Master</h2>
-              <p>
-                Accede a la biblioteca completa de descargas ilimitadas de plantillas MS Project, archivos .xer de Primavera P6 y soporte técnico exclusivo.
-              </p>
-              <button className="btn-primary" onClick={() => navigateTo('membresias')}>
-                Ver Beneficios de Membresía
-              </button>
-            </div>
-            <div className="promo-graphic">
-              <Star size={80} className="glow-star-icon" fill="rgba(255,255,255,0.15)" />
+      {!config.hideMembresias && (
+        <section className="membership-promo-section py-section">
+          <div className="container">
+            <div className="promo-banner-card">
+              <div className="promo-info">
+                <span className="promo-tag">PREMIUM</span>
+                <h2>Únete a la Membresía Ingeniero Master</h2>
+                <p>
+                  Accede a la biblioteca completa de descargas ilimitadas de plantillas MS Project, archivos .xer de Primavera P6 y soporte técnico exclusivo.
+                </p>
+                <button className="btn-primary" onClick={() => navigateTo('membresias')}>
+                  Ver Beneficios de Membresía
+                </button>
+              </div>
+              <div className="promo-graphic">
+                <Star size={80} className="glow-star-icon" fill="rgba(255,255,255,0.15)" />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         /* Banner principal Hero */
