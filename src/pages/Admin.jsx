@@ -49,6 +49,7 @@ export default function Admin({ navigateTo }) {
   // Estados de Sincronización
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  const [fbTesting, setFbTesting] = useState(false);
 
   // Campaña Newsletter
   const [campaignSubject, setCampaignSubject] = useState('');
@@ -576,6 +577,41 @@ export default function Admin({ navigateTo }) {
       alert('Configuración guardada con éxito.');
     }
     
+    refreshAllData();
+  };
+
+  // Configuración de Firebase Realtime Database
+  const handleSaveFirebaseSettings = async (e) => {
+    e.preventDefault();
+    dbService.saveConfig(config);
+
+    if (config.firebaseActive) {
+      if (!config.firebaseApiKey || !config.firebaseDatabaseUrl) {
+        alert('Por favor, completa la API Key y la URL de la base de datos de Firebase.');
+        return;
+      }
+
+      setFbTesting(true);
+      try {
+        const cleanUrl = config.firebaseDatabaseUrl.endsWith('/') ? config.firebaseDatabaseUrl : config.firebaseDatabaseUrl + '/';
+        const testUrl = `${cleanUrl}.json?shallow=true`;
+        
+        const response = await fetch(testUrl);
+        
+        if (response.ok) {
+          alert('¡Conexión establecida con éxito! Firebase Realtime Database se ha configurado e inicializado en tiempo real.');
+        } else {
+          alert(`Configuración guardada localmente, pero Firebase devolvió un error de acceso (${response.status}). Verifica que la base de datos esté en Modo de Prueba.`);
+        }
+      } catch (err) {
+        alert(`Configuración guardada localmente, pero falló el ping de prueba a Firebase: ${err.message}`);
+      } finally {
+        setFbTesting(false);
+      }
+    } else {
+      alert('Configuración de Firebase guardada con éxito.');
+    }
+
     refreshAllData();
   };
 
@@ -1488,6 +1524,59 @@ export default function Admin({ navigateTo }) {
                     {syncLoading ? <RefreshCw className="animate-spin" size={14} /> : 'Sincronizar con Airtable'}
                   </button>
                   {syncMsg && <p style={{fontSize:12, marginTop:8, textAlign:'center', color:'var(--primary)'}}>{syncMsg}</p>}
+                </div>
+
+                {/* Integración Firebase Realtime Database */}
+                <div className="sidebar-card" style={{marginTop:16}}>
+                  <h3 className="sidebar-card-title" style={{display:'flex', alignItems:'center', gap:8}}><Database size={16} color="#f5820d" /> Firebase Realtime Database</h3>
+                  <p style={{fontSize:13, color:'var(--text-muted)', marginBottom:16}}>Sincroniza tus artículos y comentarios en tiempo real en todos los dispositivos usando Firebase.</p>
+                  
+                  <form onSubmit={handleSaveFirebaseSettings} className="comment-form-grid">
+                    <div className="admin-form-group" style={{flexDirection:'row', alignItems:'center', gap:10}}>
+                      <input 
+                        type="checkbox" 
+                        id="fb-chk" 
+                        checked={config.firebaseActive || false}
+                        onChange={(e) => setConfig({...config, firebaseActive: e.target.checked})}
+                        style={{width:18, height:18}}
+                      />
+                      <label htmlFor="fb-chk">Habilitar Firebase Sync</label>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label>Firebase API Key</label>
+                      <input 
+                        type="password" 
+                        value={config.firebaseApiKey || ''}
+                        onChange={(e) => setConfig({...config, firebaseApiKey: e.target.value})}
+                        placeholder="AIzaSyXXXXXXXXXXXXXXXXX"
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label>Firebase Database URL</label>
+                      <input 
+                        type="text" 
+                        value={config.firebaseDatabaseUrl || ''}
+                        onChange={(e) => setConfig({...config, firebaseDatabaseUrl: e.target.value})}
+                        placeholder="https://su-proyecto-rtdb.firebaseio.com/"
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label>Firebase Project ID</label>
+                      <input 
+                        type="text" 
+                        value={config.firebaseProjectId || ''}
+                        onChange={(e) => setConfig({...config, firebaseProjectId: e.target.value})}
+                        placeholder="su-proyecto"
+                      />
+                    </div>
+
+                    <button type="submit" className="btn-primary w-full" disabled={fbTesting}>
+                      {fbTesting ? 'Verificando...' : 'Guardar y Probar Conexión'}
+                    </button>
+                  </form>
                 </div>
 
               </div>

@@ -129,7 +129,7 @@ export default function Contacto() {
                 </div>
                 <div className="contact-method-info">
                   <h4>WhatsApp / Teléfono</h4>
-                  <span>+51 987 654 321</span>
+                  <span>+51 906 826 240</span>
                 </div>
               </div>
 
@@ -139,7 +139,7 @@ export default function Contacto() {
                 </div>
                 <div className="contact-method-info">
                   <h4>Ubicación PMO</h4>
-                  <span>Lima, Perú (Atención remota a toda Latinoamérica)</span>
+                  <span>Arequipa, Perú (Atención remota)</span>
                 </div>
               </div>
             </div>

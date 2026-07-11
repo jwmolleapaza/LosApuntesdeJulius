@@ -287,6 +287,10 @@ const DEFAULT_CONFIG = {
   hideServicios: false,
   hideMembresias: false,
   hideContacto: false,
+  firebaseApiKey: '',
+  firebaseDatabaseUrl: '',
+  firebaseProjectId: '',
+  firebaseActive: false,
   aboutTitle: 'Sobre Nosotros',
   aboutText: 'Ingeniero Civil Colegiado con más de 12 años de experiencia liderando oficinas de Control de Proyectos (PMO) en contratos de infraestructura vial, minería y edificaciones. Apasionado por la tecnología aplicada a la construcción, ha desarrollado este blog como un espacio para compartir apuntes prácticos sobre herramientas como Primavera P6, MS Project, y automatización con hojas de cálculo e inteligencia artificial.',
   aboutImage: 'julius_photo.jpg',
@@ -376,6 +380,13 @@ const initializeStorage = () => {
         parsedConfig.hideContacto = false;
         changed = true;
       }
+      if (!parsedConfig.hasOwnProperty('firebaseActive')) {
+        parsedConfig.firebaseApiKey = '';
+        parsedConfig.firebaseDatabaseUrl = '';
+        parsedConfig.firebaseProjectId = '';
+        parsedConfig.firebaseActive = false;
+        changed = true;
+      }
       if (changed) {
         localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parsedConfig));
       }
@@ -405,6 +416,38 @@ const addLogEntry = (action, user = 'Administrador') => {
   localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
 };
 
+let firebaseApp = null;
+let firebaseDb = null;
+
+const getFirebaseDb = async () => {
+  if (firebaseDb) return firebaseDb;
+  const config = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONFIG) || '{}');
+  if (config.firebaseActive && config.firebaseApiKey && config.firebaseDatabaseUrl) {
+    try {
+      const { initializeApp, getApp } = await import('firebase/app');
+      const { getDatabase } = await import('firebase/database');
+      
+      const firebaseConfig = {
+        apiKey: config.firebaseApiKey,
+        databaseURL: config.firebaseDatabaseUrl,
+        projectId: config.firebaseProjectId
+      };
+      
+      let app;
+      try {
+        app = getApp();
+      } catch (e) {
+        app = initializeApp(firebaseConfig);
+      }
+      firebaseDb = getDatabase(app);
+      return firebaseDb;
+    } catch (e) {
+      console.error("Error al inicializar Firebase Realtime Database dinámico:", e);
+    }
+  }
+  return null;
+};
+
 // Servicio de base de datos expuesto
 export const dbService = {
   // CONFIG
@@ -414,6 +457,7 @@ export const dbService = {
   saveConfig(config) {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
     addLogEntry('Configuración general actualizada');
+    this.syncToFirebase('config', config);
     return config;
   },
 
@@ -442,6 +486,7 @@ export const dbService = {
       }
     }
     localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
+    this.syncToFirebase('articles', articles);
     return article;
   },
   deleteArticle(id) {
@@ -449,6 +494,7 @@ export const dbService = {
     const article = articles.find(art => art.id === id);
     articles = articles.filter(art => art.id !== id);
     localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
+    this.syncToFirebase('articles', articles);
     if (article) addLogEntry(`Artículo eliminado: ${article.title}`);
     return true;
   },
@@ -458,6 +504,7 @@ export const dbService = {
     if (idx !== -1) {
       articles[idx].views = (articles[idx].views || 0) + 1;
       localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(articles));
+      this.syncToFirebase('articles', articles);
     }
   },
 
@@ -480,6 +527,7 @@ export const dbService = {
       }
     }
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    this.syncToFirebase('categories', categories);
     return category;
   },
   deleteCategory(id) {
@@ -487,6 +535,7 @@ export const dbService = {
     const category = categories.find(cat => cat.id === id);
     categories = categories.filter(cat => cat.id !== id);
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    this.syncToFirebase('categories', categories);
     if (category) addLogEntry(`Categoría eliminada: ${category.name}`);
     return true;
   },
@@ -510,6 +559,7 @@ export const dbService = {
       }
     }
     localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+    this.syncToFirebase('resources', resources);
     return resource;
   },
   deleteResource(id) {
@@ -517,6 +567,7 @@ export const dbService = {
     const resource = resources.find(res => res.id === id);
     resources = resources.filter(res => res.id !== id);
     localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+    this.syncToFirebase('resources', resources);
     if (resource) addLogEntry(`Recurso eliminado: ${resource.title}`);
     return true;
   },
@@ -526,6 +577,7 @@ export const dbService = {
     if (idx !== -1) {
       resources[idx].downloadCount = (resources[idx].downloadCount || 0) + 1;
       localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+      this.syncToFirebase('resources', resources);
     }
   },
 
@@ -547,6 +599,7 @@ export const dbService = {
       }
     }
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+    this.syncToFirebase('courses', courses);
     return course;
   },
   deleteCourse(id) {
@@ -554,6 +607,7 @@ export const dbService = {
     const course = courses.find(c => c.id === id);
     courses = courses.filter(c => c.id !== id);
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+    this.syncToFirebase('courses', courses);
     if (course) addLogEntry(`Curso eliminado: ${course.title}`);
     return true;
   },
@@ -647,6 +701,7 @@ export const dbService = {
       addLogEntry(`Membresía editada: ${membership.name}`);
     }
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(memberships));
+    this.syncToFirebase('memberships', memberships);
     return membership;
   },
 
@@ -665,6 +720,7 @@ export const dbService = {
     comment.status = 'pendiente'; // Requiere moderación
     comments.push(comment);
     localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+    this.syncToFirebase('comments', comments);
     addLogEntry(`Comentario nuevo de ${comment.author}`);
     return comment;
   },
@@ -674,6 +730,7 @@ export const dbService = {
     if (idx !== -1) {
       comments[idx].status = status;
       localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+      this.syncToFirebase('comments', comments);
       addLogEntry(`Comentario de ${comments[idx].author} cambiado a ${status}`);
     }
   },
@@ -681,6 +738,7 @@ export const dbService = {
     let comments = this.getComments();
     comments = comments.filter(com => com.id !== id);
     localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+    this.syncToFirebase('comments', comments);
     addLogEntry(`Comentario eliminado`);
     return true;
   },
@@ -1448,6 +1506,53 @@ export const dbService = {
     } catch (e) {
       console.error("Airtable pull failed", e);
       return { success: false, error: e.message };
+    }
+  },
+
+  async syncToFirebase(path, data) {
+    try {
+      const db = await getFirebaseDb();
+      if (db) {
+        const { ref, set } = await import('firebase/database');
+        await set(ref(db, path), data);
+      }
+    } catch (e) {
+      console.error(`Error al guardar en Firebase en la ruta ${path}`, e);
+    }
+  },
+
+  async setupFirebaseListeners(onUpdateCallback) {
+    try {
+      const db = await getFirebaseDb();
+      if (!db) return null;
+
+      const { ref, onValue } = await import('firebase/database');
+      const unsubscribers = [];
+      const paths = ['articles', 'comments', 'resources', 'courses', 'categories', 'config'];
+
+      paths.forEach(path => {
+        const storageKey = STORAGE_KEYS[path.toUpperCase()];
+        if (!storageKey) return;
+        const dbRef = ref(db, path);
+
+        const unsub = onValue(dbRef, (snapshot) => {
+          const data = snapshot.val();
+          if (data !== null) {
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            if (onUpdateCallback) {
+              onUpdateCallback(path);
+            }
+          }
+        });
+        unsubscribers.push(unsub);
+      });
+
+      return () => {
+        unsubscribers.forEach(unsub => unsub());
+      };
+    } catch (e) {
+      console.error("Error al configurar listeners de Firebase", e);
+      return null;
     }
   }
 };

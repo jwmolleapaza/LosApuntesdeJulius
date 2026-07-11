@@ -43,6 +43,27 @@ export default function App() {
     syncAirtableOnMount();
   }, []);
 
+  // Sincronizar en tiempo real con Firebase si está activo en los ajustes
+  useEffect(() => {
+    let unsubscribe = null;
+    const config = dbService.getConfig();
+    
+    if (config && config.firebaseActive) {
+      dbService.setupFirebaseListeners((path) => {
+        // Forzar actualización del estado de la aplicación para re-renderizar todas las vistas
+        setArticlesUpdated(prev => !prev);
+      }).then(unsub => {
+        unsubscribe = unsub;
+      });
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
   // Navegar de forma segura guardando el estado
   const navigateTo = (newRoute, param = null) => {
     setRoute(newRoute);
