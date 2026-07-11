@@ -790,11 +790,31 @@ export const dbService = {
     }
   },
 
-  async syncNewsFromUrl(url) {
+  async syncNewsFromUrl(url, publishImmediately = false) {
     if (!url) throw new Error('La URL es requerida');
     
     const existingArticles = this.getArticles();
+    const existingIds = new Set(existingArticles.map(a => a.id));
     let importedCount = 0;
+
+    const finalizeSync = (count, msg) => {
+      if (count > 0) {
+        if (publishImmediately) {
+          existingArticles.forEach(art => {
+            if (!existingIds.has(art.id)) {
+              art.status = 'publicado';
+            }
+          });
+        }
+        localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
+        this.syncToFirebase('articles', existingArticles);
+      }
+      return {
+        success: true,
+        count,
+        message: msg
+      };
+    };
 
     // 1. Caso Rumbo Minero
     if (url.includes('rumbominero.com')) {
@@ -897,15 +917,10 @@ export const dbService = {
         }
       });
 
-      if (importedCount > 0) {
-        localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-      }
-
-      return {
-        success: true,
-        count: importedCount,
-        message: `Bypass de Cloudflare activado para Rumbo Minero. Se sincronizaron exitosamente ${importedCount} noticias mineras como borradores.`
-      };
+      return finalizeSync(
+        importedCount,
+        `Bypass de Cloudflare activado para Rumbo Minero. Se sincronizaron exitosamente ${importedCount} noticias mineras.`
+      );
     }
 
     // 2. Caso Revista Construir
@@ -971,15 +986,10 @@ export const dbService = {
           }
         });
 
-        if (importedCount > 0) {
-          localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-        }
-
-        return {
-          success: true,
-          count: importedCount,
-          message: `Sincronización en vivo completada. Se importaron ${importedCount} noticias en borrador de Revista Construir.`
-        };
+        return finalizeSync(
+          importedCount,
+          `Sincronización en vivo completada. Se importaron ${importedCount} noticias de Revista Construir.`
+        );
 
       } catch (err) {
         // Fallback a simulación de Revista Construir si falla la red/CORS
@@ -1041,15 +1051,10 @@ export const dbService = {
           }
         });
 
-        if (importedCount > 0) {
-          localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-        }
-
-        return {
-          success: true,
-          count: importedCount,
-          message: `Sincronización simulada activada para Revista Construir. Se agregaron ${importedCount} noticias del sector construcción como borradores.`
-        };
+        return finalizeSync(
+          importedCount,
+          `Sincronización simulada activada para Revista Construir. Se agregaron ${importedCount} noticias del sector construcción.`
+        );
       }
     }
 
@@ -1116,15 +1121,10 @@ export const dbService = {
           }
         });
 
-        if (importedCount > 0) {
-          localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-        }
-
-        return {
-          success: true,
-          count: importedCount,
-          message: `Sincronización en vivo completada. Se importaron ${importedCount} noticias en borrador de Revista Constructivo.`
-        };
+        return finalizeSync(
+          importedCount,
+          `Sincronización en vivo completada. Se importaron ${importedCount} noticias de Revista Constructivo.`
+        );
 
       } catch (err) {
         // Fallback a simulación de Revista Constructivo si falla la red/CORS
@@ -1186,15 +1186,10 @@ export const dbService = {
           }
         });
 
-        if (importedCount > 0) {
-          localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-        }
-
-        return {
-          success: true,
-          count: importedCount,
-          message: `Sincronización simulada activada para Revista Constructivo. Se agregaron ${importedCount} noticias de ingeniería civil como borradores.`
-        };
+        return finalizeSync(
+          importedCount,
+          `Sincronización simulada activada para Revista Constructivo. Se agregaron ${importedCount} noticias de ingeniería civil.`
+        );
       }
     }
 
@@ -1266,15 +1261,10 @@ export const dbService = {
         }
       });
 
-      if (importedCount > 0) {
-        localStorage.setItem(STORAGE_KEYS.ARTICLES, JSON.stringify(existingArticles));
-      }
-
-      return {
-        success: true,
-        count: importedCount,
-        message: `Se sincronizaron exitosamente ${importedCount} noticias del feed RSS como borradores.`
-      };
+      return finalizeSync(
+        importedCount,
+        `Se sincronizaron exitosamente ${importedCount} noticias del feed RSS.`
+      );
 
     } catch (err) {
       throw new Error(`Sincronización fallida: ${err.message}. Verifica que sea un feed RSS público válido.`);

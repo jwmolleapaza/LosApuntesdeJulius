@@ -94,6 +94,7 @@ export default function Admin({ navigateTo }) {
   const [syncNewsLoading, setSyncNewsLoading] = useState(false);
   const [syncNewsError, setSyncNewsError] = useState('');
   const [syncNewsSuccess, setSyncNewsSuccess] = useState('');
+  const [publishImmediately, setPublishImmediately] = useState(false);
 
   // Cargar datos al iniciar
   useEffect(() => {
@@ -425,7 +426,7 @@ export default function Admin({ navigateTo }) {
     setSyncNewsError('');
     setSyncNewsSuccess('');
     try {
-      const res = await dbService.syncNewsFromUrl(syncUrl);
+      const res = await dbService.syncNewsFromUrl(syncUrl, publishImmediately);
       setSyncNewsSuccess(res.message);
       refreshAllData();
     } catch (err) {
@@ -2029,6 +2030,8 @@ export default function Admin({ navigateTo }) {
                         setSyncUrl('https://construir.com.pe/noticias/');
                       } else if (val === 'constructivo') {
                         setSyncUrl('https://constructivo.com/noticia');
+                      } else if (val.startsWith('http')) {
+                        setSyncUrl(val);
                       } else {
                         setSyncUrl('');
                       }
@@ -2037,6 +2040,9 @@ export default function Admin({ navigateTo }) {
                     <option value="rumbominero">Rumbo Minero (Minería)</option>
                     <option value="construir">Revista Internacional Construir (Construcción)</option>
                     <option value="constructivo">Revista Constructivo (Ingeniería y Construcción)</option>
+                    {(config.syncSources || []).map(source => (
+                      <option key={source.id} value={source.url}>{source.name} (RSS)</option>
+                    ))}
                     <option value="custom">Otro portal / Feed RSS personalizado</option>
                   </select>
                 </div>
@@ -2054,8 +2060,95 @@ export default function Admin({ navigateTo }) {
                     placeholder="https://..."
                   />
                   <small style={{fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block'}}>
-                    Soporta scraping adaptativo de <strong>Rumbo Minero</strong>, <strong>Revista Construir</strong>, <strong>Revista Constructivo</strong> y feeds RSS genéricos de WordPress.
+                    Soporta scraping de <strong>Rumbo Minero</strong>, <strong>Revista Construir</strong>, <strong>Revista Constructivo</strong> y feeds RSS genéricos de WordPress.
                   </small>
+                </div>
+
+                <div className="admin-form-group" style={{flexDirection:'row', alignItems:'center', gap:10, margin:'12px 0 6px 0'}}>
+                  <input 
+                    type="checkbox" 
+                    id="pub-chk" 
+                    checked={publishImmediately}
+                    onChange={(e) => setPublishImmediately(e.target.checked)}
+                    style={{width:16, height:16, cursor:'pointer'}}
+                  />
+                  <label htmlFor="pub-chk" style={{fontSize:12, fontWeight:600, cursor:'pointer'}}>Publicar directamente al sincronizar (modo sincrónico)</label>
+                </div>
+
+                <div style={{marginTop:16, padding:12, border:'1px dashed var(--border)', borderRadius:8, backgroundColor:'var(--bg-surface)'}}>
+                  <h4 style={{fontSize:12, fontWeight:700, marginBottom:8, color:'var(--text-main)'}}>Gestionar Fuentes de Noticias</h4>
+                  
+                  <div style={{display:'flex', gap:8, marginBottom:8}}>
+                    <input 
+                      type="text" 
+                      placeholder="Nombre (ej: El Peruano)" 
+                      id="new-source-name"
+                      className="w-full"
+                      style={{fontSize:11, padding:6, height:32, border:'1px solid var(--border)', borderRadius:4}}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="URL del Feed RSS" 
+                      id="new-source-url"
+                      className="w-full"
+                      style={{fontSize:11, padding:6, height:32, border:'1px solid var(--border)', borderRadius:4}}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      style={{padding:'4px 10px', fontSize:11, height:32, whiteSpace:'nowrap'}}
+                      onClick={() => {
+                        const nameEl = document.getElementById('new-source-name');
+                        const urlEl = document.getElementById('new-source-url');
+                        const name = nameEl.value.trim();
+                        const url = urlEl.value.trim();
+                        
+                        if (!name || !url) {
+                          alert('Por favor, escribe el nombre y la URL del Feed RSS.');
+                          return;
+                        }
+                        
+                        const currentSources = config.syncSources || [];
+                        const updatedSources = [...currentSources, { id: 'src-' + Date.now(), name, url }];
+                        const updatedConfig = { ...config, syncSources: updatedSources };
+                        
+                        setConfig(updatedConfig);
+                        dbService.saveConfig(updatedConfig);
+                        
+                        nameEl.value = '';
+                        urlEl.value = '';
+                        alert('¡Fuente de noticias agregada con éxito!');
+                      }}
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                  
+                  {(config.syncSources && config.syncSources.length > 0) && (
+                    <div style={{maxHeight:90, overflowY:'auto', display:'flex', flexDirection:'column', gap:6, marginTop:8}}>
+                      {config.syncSources.map(source => (
+                        <div key={source.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'4px 8px', backgroundColor:'var(--bg-light)', borderRadius:4, border:'1px solid var(--border)'}}>
+                          <span style={{fontSize:10, textOverflow:'ellipsis', overflow:'hidden', whiteSpace:'nowrap', maxWidth:220}}>
+                            <strong>{source.name}</strong> <code style={{fontSize:9, color:'var(--text-muted)'}}>({source.url})</code>
+                          </span>
+                          <button 
+                            type="button" 
+                            style={{border:'none', background:'none', color:'#ef4444', fontSize:10, cursor:'pointer', fontWeight:600}}
+                            onClick={() => {
+                              if (confirm(`¿Eliminar la fuente "${source.name}"?`)) {
+                                const updatedSources = config.syncSources.filter(s => s.id !== source.id);
+                                const updatedConfig = { ...config, syncSources: updatedSources };
+                                setConfig(updatedConfig);
+                                dbService.saveConfig(updatedConfig);
+                              }
+                            }}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {syncNewsLoading && (
