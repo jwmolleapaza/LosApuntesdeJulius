@@ -60,7 +60,7 @@ export default function Header({ currentRoute, navigateTo }) {
   const menuItems = [
     { label: 'Inicio', route: 'home' },
     !config.hideNoticias && { label: 'Noticias', route: 'noticias' },
-    !config.hideBlog && { label: 'Blog', route: 'blog' },
+    !config.hideBlog && { label: 'Artículos', route: 'blog' },
     !config.hideRecursos && { label: 'Recursos', route: 'recursos' },
     !config.hideCursos && { label: 'Cursos', route: 'cursos' },
     !config.hideServicios && { label: 'Servicios', route: 'servicios' },

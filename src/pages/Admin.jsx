@@ -1433,7 +1433,7 @@ export default function Admin({ navigateTo }) {
                         </div>
                         <div style={{display:'flex', alignItems:'center', gap:8}}>
                           <input type="checkbox" id="hide-blog" checked={config.hideBlog || false} onChange={(e) => setConfig({...config, hideBlog: e.target.checked})} style={{width:16, height:16}} />
-                          <label htmlFor="hide-blog" style={{margin:0, fontSize:13}}>Ocultar Blog Técnico</label>
+                          <label htmlFor="hide-blog" style={{margin:0, fontSize:13}}>Ocultar Artículos</label>
                         </div>
                         <div style={{display:'flex', alignItems:'center', gap:8}}>
                           <input type="checkbox" id="hide-recursos" checked={config.hideRecursos || false} onChange={(e) => setConfig({...config, hideRecursos: e.target.checked})} style={{width:16, height:16}} />

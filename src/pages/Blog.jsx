@@ -54,14 +54,14 @@ export default function Blog({ filterQuery, navigateTo, onlyTechnical, onlyNotic
   return (
     <div className="blog-page-container container py-section">
       <SEOHead 
-        title={onlyNoticias ? "Noticias de Minería" : "Blog Técnico"} 
+        title={onlyNoticias ? "Noticias de Minería" : "Artículos"} 
         description={onlyNoticias 
           ? "Sigue las últimas noticias del sector minero e inversiones en infraestructura." 
           : "Explora todos los artículos, guías detalladas y tutoriales de Primavera P6, MS Project y control de obras."} 
       />
 
       <div className="blog-title-header">
-        <h1>{onlyNoticias ? 'Noticias de Ingeniería y Minería' : 'Apuntes y Publicaciones del Blog'}</h1>
+        <h1>{onlyNoticias ? 'Noticias de Ingeniería y Minería' : 'Artículos y Publicaciones'}</h1>
         <p>{onlyNoticias 
           ? 'Últimas novedades, inversiones mineras y actualidad del sector en el Perú.' 
           : 'Filtrado de lecciones técnicas en planificación, Primavera P6, MS Project y control de plazos.'}

@@ -88,7 +88,7 @@ export default function Footer({ navigateTo }) {
           <div className="footer-links-list">
             <button onClick={() => navigateTo('home')}>Inicio</button>
             {!config.hideNoticias && <button onClick={() => navigateTo('noticias')}>Noticias</button>}
-            {!config.hideBlog && <button onClick={() => navigateTo('blog')}>Blog Técnico</button>}
+            {!config.hideBlog && <button onClick={() => navigateTo('blog')}>Artículos</button>}
             {!config.hideServicios && <button onClick={() => navigateTo('servicios')}>Servicios</button>}
             {!config.hideRecursos && <button onClick={() => navigateTo('recursos')}>Recursos Gratuitos</button>}
           </div>
