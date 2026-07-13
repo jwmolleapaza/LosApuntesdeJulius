@@ -1,6 +1,8 @@
 // Servicio de Base de Datos para "Los Apuntes de Julius"
 // Soporta LocalStorage con persistencia y sincronización opcional con Airtable
 
+import firebaseConfigDefault from '../firebase-config.json';
+
 const STORAGE_KEYS = {
   ARTICLES: 'julius_articles',
   CATEGORIES: 'julius_categories',
@@ -287,10 +289,10 @@ const DEFAULT_CONFIG = {
   hideServicios: false,
   hideMembresias: false,
   hideContacto: false,
-  firebaseApiKey: '',
-  firebaseDatabaseUrl: '',
-  firebaseProjectId: '',
-  firebaseActive: false,
+  firebaseApiKey: firebaseConfigDefault.firebaseApiKey || '',
+  firebaseDatabaseUrl: firebaseConfigDefault.firebaseDatabaseUrl || '',
+  firebaseProjectId: firebaseConfigDefault.firebaseProjectId || '',
+  firebaseActive: firebaseConfigDefault.firebaseActive || false,
   aboutTitle: 'Sobre Nosotros',
   aboutText: 'Ingeniero Civil Colegiado con más de 12 años de experiencia liderando oficinas de Control de Proyectos (PMO) en contratos de infraestructura vial, minería y edificaciones. Apasionado por la tecnología aplicada a la construcción, ha desarrollado este blog como un espacio para compartir apuntes prácticos sobre herramientas como Primavera P6, MS Project, y automatización con hojas de cálculo e inteligencia artificial.',
   aboutImage: 'julius_photo.jpg',
@@ -381,10 +383,19 @@ const initializeStorage = () => {
         changed = true;
       }
       if (!parsedConfig.hasOwnProperty('firebaseActive')) {
-        parsedConfig.firebaseApiKey = '';
-        parsedConfig.firebaseDatabaseUrl = '';
-        parsedConfig.firebaseProjectId = '';
-        parsedConfig.firebaseActive = false;
+        parsedConfig.firebaseApiKey = firebaseConfigDefault.firebaseApiKey || '';
+        parsedConfig.firebaseDatabaseUrl = firebaseConfigDefault.firebaseDatabaseUrl || '';
+        parsedConfig.firebaseProjectId = firebaseConfigDefault.firebaseProjectId || '';
+        parsedConfig.firebaseActive = firebaseConfigDefault.firebaseActive || false;
+        changed = true;
+      }
+      if (firebaseConfigDefault.firebaseActive && 
+          (parsedConfig.firebaseDatabaseUrl !== firebaseConfigDefault.firebaseDatabaseUrl || 
+           parsedConfig.firebaseActive !== firebaseConfigDefault.firebaseActive)) {
+        parsedConfig.firebaseApiKey = firebaseConfigDefault.firebaseApiKey;
+        parsedConfig.firebaseDatabaseUrl = firebaseConfigDefault.firebaseDatabaseUrl;
+        parsedConfig.firebaseProjectId = firebaseConfigDefault.firebaseProjectId;
+        parsedConfig.firebaseActive = firebaseConfigDefault.firebaseActive;
         changed = true;
       }
       if (changed) {
