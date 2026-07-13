@@ -297,6 +297,42 @@ export default function Admin({ navigateTo }) {
     reader.readAsDataURL(file);
   };
 
+  // Maniobrar subida de logotipo personalizado
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 150;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL('image/png');
+        setConfig(prevConfig => ({ ...prevConfig, logoImage: compressedBase64 }));
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Guardar o Editar Recurso
   const handleSaveResource = (e) => {
     e.preventDefault();
@@ -1351,6 +1387,41 @@ export default function Admin({ navigateTo }) {
                         value={config.logoText || ''}
                         onChange={(e) => setConfig({...config, logoText: e.target.value})}
                       />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label>Logotipo Personalizado (Imagen)</label>
+                      <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                        <input 
+                          type="text" 
+                          value={config.logoImage || ''}
+                          onChange={(e) => setConfig({...config, logoImage: e.target.value})}
+                          placeholder="Pegar enlace de imagen o subir archivo local..."
+                          style={{flexGrow:1}}
+                        />
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleLogoUpload} 
+                          style={{display:'none'}} 
+                          id="logo-img-file"
+                        />
+                        <label htmlFor="logo-img-file" className="btn-secondary" style={{padding:'10px 14px', fontSize:12, cursor:'pointer', margin:0, whiteSpace:'nowrap', borderRadius:'var(--radius-md)'}}>
+                          Subir Logo
+                        </label>
+                      </div>
+                      {config.logoImage && (
+                        <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
+                          <img src={config.logoImage} alt="Vista previa del logo" style={{height:36, objectFit:'contain', borderRadius:'var(--radius-sm)', border:'1px solid var(--border)', padding:2, backgroundColor:'#fff'}} />
+                          <button 
+                            type="button" 
+                            style={{color:'#ef4444', fontSize:12, background:'none', border:'none', cursor:'pointer', fontWeight:600}}
+                            onClick={() => setConfig({...config, logoImage: ''})}
+                          >
+                            Eliminar Logo Personalizado
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div style={{borderTop:'1px solid var(--border)', paddingTop:16, marginTop:16, marginBottom:16}}>

@@ -72,14 +72,23 @@ export default function Header({ currentRoute, navigateTo }) {
     <header className="site-header">
       <div className="container header-container">
         
-        {/* Logotipo Moderno SVG */}
+        {/* Logotipo Moderno SVG o Imagen Personalizada */}
         <div className="header-logo" onClick={() => navigateTo('home')}>
-          <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-            <rect width="100" height="100" rx="16" fill="var(--primary)" />
-            <path d="M25 75V25H37L50 50L63 25H75V75H63V45L50 70L37 45V75H25Z" fill="white" />
-            <line x1="15" y1="85" x2="85" y2="85" stroke="white" strokeWidth="6" strokeLinecap="round" />
-            <circle cx="50" cy="15" r="5" fill="white" />
-          </svg>
+          {config.logoImage ? (
+            <img 
+              src={config.logoImage} 
+              alt="Logo" 
+              className="logo-img" 
+              style={{height: 38, width: 'auto', maxWidth: 120, objectFit: 'contain'}} 
+            />
+          ) : (
+            <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
+              <rect width="100" height="100" rx="16" fill="var(--primary)" />
+              <path d="M25 75V25H37L50 50L63 25H75V75H63V45L50 70L37 45V75H25Z" fill="white" />
+              <line x1="15" y1="85" x2="85" y2="85" stroke="white" strokeWidth="6" strokeLinecap="round" />
+              <circle cx="50" cy="15" r="5" fill="white" />
+            </svg>
+          )}
           <div className="logo-text-wrapper">
             <span className="logo-title">{config.siteName}</span>
             <span className="logo-sub">{config.logoText}</span>

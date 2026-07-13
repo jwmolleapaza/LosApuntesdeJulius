@@ -40,11 +40,19 @@ export default function Footer({ navigateTo }) {
         {/* Columna 1: Info e Identidad */}
         <div className="footer-col-info">
           <div className="footer-logo" onClick={() => navigateTo('home')}>
-            <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="16" fill="var(--primary)" />
-              <path d="M25 75V25H37L50 50L63 25H75V75H63V45L50 70L37 45V75H25Z" fill="white" />
-              <line x1="15" y1="85" x2="85" y2="85" stroke="white" strokeWidth="6" strokeLinecap="round" />
-            </svg>
+            {config.logoImage ? (
+              <img 
+                src={config.logoImage} 
+                alt="Logo" 
+                style={{height: 30, width: 'auto', maxWidth: 90, objectFit: 'contain'}} 
+              />
+            ) : (
+              <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" rx="16" fill="var(--primary)" />
+                <path d="M25 75V25H37L50 50L63 25H75V75H63V45L50 70L37 45V75H25Z" fill="white" />
+                <line x1="15" y1="85" x2="85" y2="85" stroke="white" strokeWidth="6" strokeLinecap="round" />
+              </svg>
+            )}
             <span className="footer-logo-title">{config.siteName}</span>
           </div>
           <p className="footer-description">
