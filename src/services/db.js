@@ -1555,5 +1555,46 @@ export const dbService = {
       console.error("Error al configurar listeners de Firebase", e);
       return null;
     }
+  },
+
+  async runAutomaticNewsSync() {
+    const config = this.getConfig();
+    const now = Date.now();
+    const fourHours = 4 * 60 * 60 * 1000;
+    
+    if (config.lastNewsSyncTimestamp && (now - config.lastNewsSyncTimestamp < fourHours)) {
+      return { success: false, reason: 'Cooldown activo' };
+    }
+    
+    console.log("🔄 Iniciando sincronización automática de noticias en segundo plano...");
+    
+    const urlsToSync = [
+      'https://www.rumbominero.com/category/peru/noticias/mineria/',
+      'https://construir.com.pe/noticias/',
+      'https://constructivo.com/noticia'
+    ];
+    
+    if (config.syncSources && config.syncSources.length > 0) {
+      config.syncSources.forEach(src => {
+        if (src.url) urlsToSync.push(src.url);
+      });
+    }
+    
+    let totalImported = 0;
+    for (const url of urlsToSync) {
+      try {
+        const res = await this.syncNewsFromUrl(url, true);
+        if (res.success) {
+          totalImported += res.count;
+        }
+      } catch (e) {
+        console.warn(`Error al autosincronizar fuente ${url}:`, e);
+      }
+    }
+    
+    const updatedConfig = { ...config, lastNewsSyncTimestamp: now };
+    this.saveConfig(updatedConfig);
+    
+    return { success: true, count: totalImported };
   }
 };

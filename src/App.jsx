@@ -64,6 +64,23 @@ export default function App() {
     };
   }, []);
 
+  // Sincronización automática de noticias en segundo plano (cooldown de 4 horas)
+  useEffect(() => {
+    const triggerAutoNewsSync = async () => {
+      try {
+        const config = dbService.getConfig();
+        if (config && config.firebaseActive) {
+          await dbService.runAutomaticNewsSync();
+        }
+      } catch (err) {
+        console.error("Error en autosincronización de noticias:", err);
+      }
+    };
+    
+    const timer = setTimeout(triggerAutoNewsSync, 4000);
+    return () => clearTimeout(timer);
+  }, [articlesUpdated]);
+
   // Navegar de forma segura guardando el estado
   const navigateTo = (newRoute, param = null) => {
     setRoute(newRoute);
